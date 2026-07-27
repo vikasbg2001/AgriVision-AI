@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from datetime import date
+from datetime import date, datetime
 
 st.set_page_config(
     page_title="AgriVision AI",
@@ -9,20 +9,32 @@ st.set_page_config(
 )
 
 st.title("🌾 AgriVision AI")
-st.subheader("AI Crop Growth & Harvest Prediction (Prototype)")
+st.write("AI Crop Growth & Harvest Prediction Prototype")
 
 uploaded_file = st.file_uploader(
     "Upload Crop Image",
     type=["jpg", "jpeg", "png"]
 )
 
-sowing_date = st.date_input(
-    "Sowing Date",
-    value=date.today()
-)
+col1, col2 = st.columns(2)
 
-location = st.text_input(
-    "Farm Location"
+with col1:
+    sowing_date = st.date_input(
+        "Sowing Date",
+        value=date.today()
+    )
+
+with col2:
+    location = st.text_input(
+        "Farm Location",
+        placeholder="Example: Mysuru"
+    )
+
+area = st.number_input(
+    "Land Area (Acres)",
+    min_value=0.5,
+    max_value=100.0,
+    value=1.0
 )
 
 if uploaded_file:
@@ -37,18 +49,44 @@ if uploaded_file:
 
     if st.button("Analyze Crop"):
 
-        st.success("Analysis Complete")
+        today = datetime.today().date()
 
-        st.write("### AI Result")
+        days = (today - sowing_date).days
 
-        st.metric("Crop", "Paddy")
+        if days < 30:
+            stage = "Seedling"
+            harvest = 90
+        elif days < 70:
+            stage = "Vegetative"
+            harvest = 50
+        elif days < 100:
+            stage = "Flowering"
+            harvest = 20
+        else:
+            stage = "Mature"
+            harvest = 0
 
-        st.metric("Health", "92%")
+        st.success("Analysis Completed")
 
-        st.metric("Growth Stage", "Flowering")
+        c1, c2 = st.columns(2)
 
-        st.metric("Harvest", "18 Days Remaining")
+        with c1:
+            st.metric("Crop", "Paddy")
+            st.metric("Health", "92%")
+            st.metric("Growth Stage", stage)
+            st.metric("Disease", "Healthy")
 
-        st.metric("Estimated Yield", "40 Quintals")
+        with c2:
+            st.metric("Harvest Remaining", f"{harvest} Days")
+            st.metric("Estimated Yield", f"{int(area*20)} Quintals")
+            st.metric("Market Price", "₹2950 / Quintal")
+            st.metric("Location", location)
 
-        st.metric("Ready to Harvest", "No")
+        st.subheader("Recommendation")
+
+        if harvest == 0:
+            st.success("Crop is Ready for Harvest")
+        else:
+            st.info(f"Estimated harvest after {harvest} days.")
+
+        st.warning("Weather API will be connected in the next version.")
