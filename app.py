@@ -1,6 +1,13 @@
 import streamlit as st
 from PIL import Image
-from datetime import date, datetime
+from datetime import date
+
+# Import project modules
+from utils.crop_detector import detect_crop
+from utils.disease_detector import detect_disease
+from utils.stage_detector import detect_stage
+from utils.weather import get_weather
+from utils.market import get_market_price
 
 st.set_page_config(
     page_title="AgriVision AI",
@@ -9,84 +16,149 @@ st.set_page_config(
 )
 
 st.title("🌾 AgriVision AI")
-st.write("AI Crop Growth & Harvest Prediction Prototype")
+st.subheader("AI Powered Smart Agriculture Platform")
 
-uploaded_file = st.file_uploader(
-    "Upload Crop Image",
-    type=["jpg", "jpeg", "png"]
+st.sidebar.header("Farm Information")
+
+location = st.sidebar.text_input(
+    "Location",
+    value="Mysuru"
 )
 
-col1, col2 = st.columns(2)
+sowing_date = st.sidebar.date_input(
+    "Sowing Date",
+    value=date.today()
+)
 
-with col1:
-    sowing_date = st.date_input(
-        "Sowing Date",
-        value=date.today()
-    )
-
-with col2:
-    location = st.text_input(
-        "Farm Location",
-        placeholder="Example: Mysuru"
-    )
-
-area = st.number_input(
+land_area = st.sidebar.number_input(
     "Land Area (Acres)",
     min_value=0.5,
     max_value=100.0,
     value=1.0
 )
 
-if uploaded_file:
+uploaded_image = st.file_uploader(
+    "📷 Upload Crop Image",
+    type=["jpg", "jpeg", "png"]
+)
 
-    image = Image.open(uploaded_file)
+if uploaded_image:
+
+    image = Image.open(uploaded_image)
 
     st.image(
         image,
-        caption="Uploaded Crop",
+        caption="Uploaded Image",
         use_container_width=True
     )
 
-    if st.button("Analyze Crop"):
+    if st.button("🤖 Analyze Crop"):
 
-        today = datetime.today().date()
+        with st.spinner("Running AI Models..."):
 
-        days = (today - sowing_date).days
+            crop = detect_crop(image)
 
-        if days < 30:
-            stage = "Seedling"
-            harvest = 90
-        elif days < 70:
-            stage = "Vegetative"
-            harvest = 50
-        elif days < 100:
-            stage = "Flowering"
-            harvest = 20
-        else:
-            stage = "Mature"
-            harvest = 0
+            disease = detect_disease(image)
+
+            stage = detect_stage(image)
+
+            weather = get_weather(location)
+
+            market = get_market_price(crop["crop"])
 
         st.success("Analysis Completed")
 
-        c1, c2 = st.columns(2)
+        st.divider()
 
-        with c1:
-            st.metric("Crop", "Paddy")
-            st.metric("Health", "92%")
-            st.metric("Growth Stage", stage)
-            st.metric("Disease", "Healthy")
+        col1, col2 = st.columns(2)
 
-        with c2:
-            st.metric("Harvest Remaining", f"{harvest} Days")
-            st.metric("Estimated Yield", f"{int(area*20)} Quintals")
-            st.metric("Market Price", "₹2950 / Quintal")
-            st.metric("Location", location)
+        with col1:
 
-        st.subheader("Recommendation")
+            st.subheader("🌾 Crop Analysis")
 
-        if harvest == 0:
-            st.success("Crop is Ready for Harvest")
+            st.metric(
+                "Crop",
+                crop["crop"]
+            )
+
+            st.metric(
+                "Confidence",
+                f'{crop["confidence"]}%'
+            )
+
+            st.metric(
+                "Growth Stage",
+                stage["stage"]
+            )
+
+            st.metric(
+                "Disease",
+                disease["disease"]
+            )
+
+        with col2:
+
+            st.subheader("📈 Prediction")
+
+            st.metric(
+                "Health",
+                f'{disease["health"]}%'
+            )
+
+            st.metric(
+                "Estimated Yield",
+                f'{int(land_area*22)} Quintals'
+            )
+
+            st.metric(
+                "Harvest",
+                stage["harvest"]
+            )
+
+        st.divider()
+
+        st.subheader("🌦 Weather")
+
+        st.write(
+            f"Temperature : {weather['temperature']} °C"
+        )
+
+        st.write(
+            f"Humidity : {weather['humidity']} %"
+        )
+
+        st.write(
+            f"Condition : {weather['condition']}"
+        )
+
+        st.divider()
+
+        st.subheader("💰 Market Price")
+
+        st.write(
+            f"Market : {market['market']}"
+        )
+
+        st.write(
+            f"Crop : {market['crop']}"
+        )
+
+        st.write(
+            f"Price : ₹{market['price']} / Quintal"
+        )
+
+        st.divider()
+
+        st.subheader("💡 AI Recommendation")
+
+        if disease["disease"] == "Healthy":
+
+            st.success(
+                "Crop is healthy. Continue irrigation and nutrient management."
+            )
+
         else:
-            st.info(f"Estimated harvest after {harvest} days.")
 
-        st.warning("Weather API will be connected in the next version.")
+            st.warning(
+                f"Detected {disease['disease']}. Spray the recommended fungicide and monitor the crop."
+            )
