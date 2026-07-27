@@ -1,7 +1,6 @@
-pip install streamlit
-pip install pillow
-pip install opencv-python
-pip install numpy
-pip install pandas
-pip install matplotlib
-pip install requests
+streamlit
+Pillow
+numpy
+pandas
+matplotlib
+requests
